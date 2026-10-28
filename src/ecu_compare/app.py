@@ -684,9 +684,21 @@ class EcuCompareApp(tk.Tk):
             pady=6,
         ).pack(fill="x", padx=8, pady=(0, 6))
 
+        self.status = tk.StringVar()
+        tk.Label(
+            self,
+            textvariable=self.status,
+            anchor="w",
+            bg="#E6E6E6",
+            fg="#111111",
+            font=("Segoe UI", 11),
+            padx=8,
+            pady=4,
+        ).pack(fill="x", side="bottom")
+
         paned = ttk.Panedwindow(self, orient="horizontal")
         self.paned = paned
-        paned.pack(fill="both", expand=True, padx=8, pady=(0, 8))
+        paned.pack(fill="both", expand=True, padx=8, pady=(0, 4))
 
         left_pane = ttk.Frame(paned)
         right_pane = ttk.Frame(paned)
@@ -775,7 +787,12 @@ class EcuCompareApp(tk.Tk):
             font=("Consolas", 11),
         ).pack(anchor="w")
 
-        self.row_bar = ttk.Frame(right_pane)
+        body = ttk.Frame(right_pane)
+        self._map_body = body
+        body.columnconfigure(0, weight=1)
+        body.rowconfigure(2, weight=1, minsize=80)
+
+        self.row_bar = ttk.Frame(body)
         ttk.Button(self.row_bar, text="◀ Previous row", command=lambda: self._step_row(-1)).pack(side="left")
         self.row_caption = tk.StringVar(value="")
         ttk.Label(
@@ -790,8 +807,8 @@ class EcuCompareApp(tk.Tk):
         )
 
         self.chart = tk.Canvas(
-            right_pane,
-            height=220,
+            body,
+            height=200,
             bg="#FFFFFF",
             highlightthickness=1,
             highlightbackground="#9AA6B2",
@@ -800,29 +817,15 @@ class EcuCompareApp(tk.Tk):
         self.chart.bind("<Button-1>", self._on_chart_click)
         self.chart.bind("<MouseWheel>", self._on_mousewheel)
 
-        grid_wrap = ttk.Frame(right_pane)
-        self.grid_wrap = grid_wrap
-        grid_wrap.pack(fill="both", expand=True, pady=(4, 0))
-        self.canvas = tk.Canvas(grid_wrap, highlightthickness=0, bg="white", takefocus=True)
-        self.hscroll = ttk.Scrollbar(grid_wrap, orient="horizontal", command=self.canvas.xview)
-        self.vscroll = ttk.Scrollbar(grid_wrap, orient="vertical", command=self.canvas.yview)
-        self.canvas.configure(xscrollcommand=self.hscroll.set, yscrollcommand=self.vscroll.set)
-        self.canvas.grid(row=0, column=0, sticky="nsew")
-        self.vscroll.grid(row=0, column=1, sticky="ns")
-        self.hscroll.grid(row=1, column=0, sticky="ew")
-        grid_wrap.rowconfigure(0, weight=1)
-        grid_wrap.columnconfigure(0, weight=1)
-        self.grid_frame = tk.Frame(self.canvas, bg="white")
-        self._canvas_win = self.canvas.create_window((0, 0), window=self.grid_frame, anchor="nw")
-        self.grid_frame.bind(
-            "<Configure>", lambda _e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
-        )
-        self.canvas.bind("<MouseWheel>", self._on_mousewheel)
-        self.grid_frame.bind("<MouseWheel>", self._on_mousewheel)
-        self.tree.bind("<MouseWheel>", self._on_tree_wheel)
+        lower = ttk.Frame(right_pane)
+        lower.pack(fill="both", expand=True)
+        lower.columnconfigure(0, weight=1)
+        lower.rowconfigure(0, weight=1)
+        lower.rowconfigure(1, weight=0)
+        body.grid(in_=lower, row=0, column=0, sticky="nsew")
 
         change_wrap = ttk.Frame(right_pane)
-        change_wrap.pack(fill="both", expand=False, pady=(6, 0))
+        change_wrap.grid(in_=lower, row=1, column=0, sticky="ew", pady=(6, 0))
         change_head = ttk.Frame(change_wrap)
         change_head.pack(fill="x")
         ttk.Label(
@@ -836,7 +839,7 @@ class EcuCompareApp(tk.Tk):
             side="right", padx=(0, 4)
         )
         cols = ("where", "a", "b", "delta")
-        self.changes = ttk.Treeview(change_wrap, columns=cols, show="headings", height=7)
+        self.changes = ttk.Treeview(change_wrap, columns=cols, show="headings", height=5)
         self.changes.heading("where", text="Cell")
         self.changes.heading("a", text="A")
         self.changes.heading("b", text="B")
@@ -853,17 +856,28 @@ class EcuCompareApp(tk.Tk):
         change_scroll.pack(side="right", fill="y")
         self.changes.bind("<<TreeviewSelect>>", lambda _e: self._pick_change_row())
 
-        self.status = tk.StringVar()
-        tk.Label(
-            self,
-            textvariable=self.status,
-            anchor="w",
-            bg="#E6E6E6",
-            fg="#111111",
-            font=("Segoe UI", 11),
-            padx=8,
-            pady=4,
-        ).pack(fill="x", side="bottom")
+        grid_wrap = ttk.Frame(body)
+        self.grid_wrap = grid_wrap
+        grid_wrap.grid(row=2, column=0, sticky="nsew", pady=(4, 0))
+        self.canvas = tk.Canvas(
+            grid_wrap, height=80, highlightthickness=0, bg="white", takefocus=True
+        )
+        self.hscroll = ttk.Scrollbar(grid_wrap, orient="horizontal", command=self.canvas.xview)
+        self.vscroll = ttk.Scrollbar(grid_wrap, orient="vertical", command=self.canvas.yview)
+        self.canvas.configure(xscrollcommand=self.hscroll.set, yscrollcommand=self.vscroll.set)
+        self.canvas.grid(row=0, column=0, sticky="nsew")
+        self.vscroll.grid(row=0, column=1, sticky="ns")
+        self.hscroll.grid(row=1, column=0, sticky="ew")
+        grid_wrap.rowconfigure(0, weight=1)
+        grid_wrap.columnconfigure(0, weight=1)
+        self.grid_frame = tk.Frame(self.canvas, bg="white")
+        self._canvas_win = self.canvas.create_window((0, 0), window=self.grid_frame, anchor="nw")
+        self.grid_frame.bind(
+            "<Configure>", lambda _e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+        )
+        self.canvas.bind("<MouseWheel>", self._on_mousewheel)
+        self.grid_frame.bind("<MouseWheel>", self._on_mousewheel)
+        self.tree.bind("<MouseWheel>", self._on_tree_wheel)
 
     def _make_title_var(self) -> tk.StringVar:
         self.table_title = tk.StringVar(value="Select a map")
@@ -1715,13 +1729,13 @@ class EcuCompareApp(tk.Tk):
             return False
         if y >= min(ta.rows(), tb.rows()) or x >= min(ta.cols(), tb.cols()):
             return False
-        return ta.data_raw[y][x] != tb.data_raw[y][x]
+        return ta.cell_raw_bytes(self.rom_a.data, y, x) != tb.cell_raw_bytes(self.rom_b.data, y, x)
 
     def _hide_row_bar(self) -> None:
         self._chart_mode = None
         self._chart_row = None
         if self.row_bar.winfo_ismapped():
-            self.row_bar.pack_forget()
+            self.row_bar.grid_remove()
 
     def _hide_chart(self) -> None:
         self._hide_row_bar()
@@ -1730,16 +1744,15 @@ class EcuCompareApp(tk.Tk):
         self._plot_box = None
         self._chart_size = None
         if self.chart.winfo_ismapped():
-            self.chart.pack_forget()
+            self.chart.grid_remove()
         self.chart.delete("all")
 
     def _pack_chart(self, with_row_bar: bool) -> None:
-        if with_row_bar and not self.row_bar.winfo_ismapped():
-            self.row_bar.pack(fill="x", before=self.grid_wrap, pady=(6, 0))
-        if not with_row_bar and self.row_bar.winfo_ismapped():
-            self.row_bar.pack_forget()
-        if not self.chart.winfo_ismapped():
-            self.chart.pack(fill="x", before=self.grid_wrap, pady=(4, 0))
+        if with_row_bar:
+            self.row_bar.grid(row=0, column=0, sticky="ew", pady=(6, 0))
+        elif self.row_bar.winfo_ismapped():
+            self.row_bar.grid_remove()
+        self.chart.grid(row=1, column=0, sticky="ew", pady=(4, 0))
         self._chart_size = None
         self.update_idletasks()
 
@@ -1941,11 +1954,13 @@ class EcuCompareApp(tk.Tk):
                     best_x = x
         self._select_cell(nxt, best_x, take_focus=True)
 
-    def _draw_chart(self) -> None:
+    def _draw_chart(self, width: int | None = None, height: int | None = None) -> None:
         if not self.chart.winfo_ismapped():
             return
-        width = int(self.chart.winfo_width())
-        height = int(self.chart.winfo_height())
+        if width is None:
+            width = int(self.chart.winfo_width())
+        if height is None:
+            height = int(self.chart.winfo_height())
         if width < 80 or height < 40:
             return
         a_series = self._chart_a or []
@@ -2058,7 +2073,7 @@ class EcuCompareApp(tk.Tk):
         self._chart_size = size
         self._chart_drawing = True
         try:
-            self._draw_chart()
+            self._draw_chart(size[0], size[1])
         finally:
             self._chart_drawing = False
 
@@ -2108,18 +2123,22 @@ class EcuCompareApp(tk.Tk):
         self._fill_change_list(name)
         vmin, vmax = _value_range(table)
         units = table.units or ""
-        if vmin == vmax:
-            span = f"{format_scaled(vmin, table.definition.format)} {units}".strip()
+        has_number = any(value is not None for row in table.data_scaled for value in row)
+        if not has_number and not table.decode_error:
+            self.range_line.set("No numeric value stored. Blank means the cell is empty (unused flash).")
         else:
-            span = (
-                f"{format_scaled(vmin, table.definition.format)} … "
-                f"{format_scaled(vmax, table.definition.format)} {units}"
-            ).strip()
-        self.range_line.set(
-            "Range "
-            + span
-            + "     pale = low, blue = high, pink = File B higher, blue = File B lower"
-        )
+            if vmin == vmax:
+                span = f"{format_scaled(vmin, table.definition.format)} {units}".strip()
+            else:
+                span = (
+                    f"{format_scaled(vmin, table.definition.format)} … "
+                    f"{format_scaled(vmax, table.definition.format)} {units}"
+                ).strip()
+            self.range_line.set(
+                "Range "
+                + span
+                + "     pale = low, blue = high, pink = File B higher, blue = File B lower"
+            )
         if table.decode_error:
             self._hide_chart()
             self._label(0, 0, f"Decode error: {table.decode_error}")

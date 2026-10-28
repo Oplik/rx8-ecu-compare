@@ -26,6 +26,7 @@ class ScalingTests(unittest.TestCase):
     def test_format(self):
         self.assertEqual(format_scaled(10.0, "0.00"), "10.00")
         self.assertEqual(format_scaled(9000, "0"), "9000")
+        self.assertEqual(format_scaled(None, "0", "blank"), "blank")
 
 
 if __name__ == "__main__":

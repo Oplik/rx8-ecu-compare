@@ -70,6 +70,8 @@ def eval_expr(expr: str, x: float) -> float:
 
 
 def format_scaled(value: float | None, fmt: str | None, error: str | None = None) -> str:
+    if error == "blank":
+        return "blank"
     if error:
         return f"scaling error ({error})"
     if value is None:
@@ -93,6 +95,9 @@ class Scaling:
     units: str = ""
 
     def to_display(self, raw: float) -> tuple[float | None, str | None]:
+        # Erased flash is FF bytes. Read as a float that is not a number.
+        if isinstance(raw, float) and not math.isfinite(raw):
+            return None, "blank"
         try:
             return eval_expr(self.expression, raw), None
         except (ScalingError, SyntaxError, TypeError, ValueError, OverflowError, ZeroDivisionError) as exc:

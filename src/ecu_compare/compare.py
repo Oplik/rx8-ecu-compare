@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 
 from ecu_compare.rom import DecodedAxis, LoadedRom, OccupiedRange, pack_one, storage_width
@@ -309,7 +310,7 @@ def _compare_table(a: LoadedRom, b: LoadedRom, name: str) -> TableDiff | None:
         endian = (axis_def.endian if axis_def and axis_def.endian else None) or ta.definition.endian or "big"
         two_d = (table.table_type or "").lower() == "2d"
         for i in range(n):
-            if axis_a.raw[i] == axis_b.raw[i]:
+            if _same_stored_number(axis_a.raw[i], axis_b.raw[i]):
                 continue
             addr = axis_a.address + i * width
             hex_a = pack_one(axis_a.raw[i], axis_a.storagetype, endian).hex(" ").upper()
@@ -353,11 +354,15 @@ def _compare_table(a: LoadedRom, b: LoadedRom, name: str) -> TableDiff | None:
             total += 1
             raw_a = ta.data_raw[y][x]
             raw_b = tb.data_raw[y][x]
-            if raw_a == raw_b:
+            bytes_a = ta.cell_raw_bytes(a.data, y, x)
+            bytes_b = tb.cell_raw_bytes(b.data, y, x)
+            # Identical bytes are not a change. NaN is not equal to itself, so a
+            # blank float would otherwise show up as a difference.
+            if bytes_a == bytes_b or raw_a == raw_b:
                 continue
             addr = ta.cell_address(y, x) or 0
-            hex_a = _hex_bytes(ta.cell_raw_bytes(a.data, y, x))
-            hex_b = _hex_bytes(tb.cell_raw_bytes(b.data, y, x))
+            hex_a = _hex_bytes(bytes_a)
+            hex_b = _hex_bytes(bytes_b)
             x_label = _axis_label(ta.x_axis, x, "X") if ta.x_axis else ""
             y_label = _axis_label(ta.y_axis, y, "Y") if ta.y_axis else ""
             if (table.table_type or "").lower() == "2d":
@@ -405,6 +410,16 @@ def _covered_bytes(ranges: list[OccupiedRange]) -> set[int]:
             continue
         covered.update(range(item.start, item.end))
     return covered
+
+
+def _same_stored_number(left: float, right: float) -> bool:
+    """True when two decoded numbers are the same, including a blank NaN on both sides."""
+    if left == right:
+        return True
+    try:
+        return math.isnan(float(left)) and math.isnan(float(right))
+    except (TypeError, ValueError):
+        return False
 
 
 def _uint16_be(data: bytes, addr: int) -> int | None:

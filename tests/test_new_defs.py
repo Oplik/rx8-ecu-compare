@@ -1,6 +1,7 @@
 import unittest
 
 from ecu_compare.app import DEFS_PATH
+from ecu_compare.compare import compare_roms
 from ecu_compare.defs import DefinitionDB
 from ecu_compare.rom import load_rom
 from ecu_compare.safety import ROOT
@@ -36,6 +37,19 @@ class NewDefsTests(unittest.TestCase):
         self.assertEqual(table.data_scaled[0][0], 2500)
         self.assertEqual(table.data_scaled[0][-1], 1400)
         self.assertEqual(table.units, "RPM")
+
+    def test_erased_launch_control_is_blank_and_not_a_change(self):
+        if self.rom is None:
+            self.skipTest("sample ROM is not part of the repository")
+        table = self.rom.tables["Launch Control - Engine Speed Setpoint"]
+        self.assertEqual(table.data_bytes, b"\xff\xff\xff\xff")
+        self.assertEqual(table.data_errors[0][0], "blank")
+        self.assertIsNone(table.data_scaled[0][0])
+        result = compare_roms(self.rom, self.rom)
+        self.assertEqual(result.tables_changed, 0)
+        names = {item.name for item in result.table_diffs}
+        self.assertNotIn("Launch Control - Engine Speed Setpoint", names)
+        self.assertNotIn("Launch Control - Engine Speed Setpoint Hysteresis", names)
 
     def test_exact_ecu_id_beats_a_shorter_prefix(self):
         data = bytearray(0x70000)
