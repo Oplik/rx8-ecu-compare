@@ -2,7 +2,7 @@
 
 Desktop program that compares two Mazda RX-8 ECU binaries with RomRaider table definitions. It shows named map differences with units, draws 2D and 3D charts, and writes a text report.
 
-It does not flash an ECU. Checksums are not updated. Do not flash an edited file until a tool you trust has verified the checksums.
+It does not flash an ECU. Checksums are not updated !!!
 
 ## Requirements
 
