@@ -1,0 +1,9 @@
+__pycache__/
+*.py[cod]
+*.bin
+data/ui_state.json
+data/reports/*
+data/exports/*
+!data/reports/.gitkeep
+!data/exports/.gitkeep
+!data/roms/.gitkeep
